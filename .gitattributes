@@ -1,0 +1,24 @@
+# Line endings are decided here, not by whatever each contributor has in their git config.
+# Without this the repository ends up with a mix, and `mvnw` is the file that suffers: it is a
+# POSIX shell script, and a single CRLF in it breaks every Linux and macOS clone.
+
+* text=auto eol=lf
+
+# Windows batch files are the exception - they need CRLF to run.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Never touched, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.jar binary
+*.zip binary
+
+# Keep the generated Maven wrapper out of diffs and language statistics - it is not our code.
+mvnw linguist-vendored
+mvnw.cmd linguist-vendored
+.mvn/** linguist-vendored
