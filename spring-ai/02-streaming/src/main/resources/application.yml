@@ -1,0 +1,39 @@
+spring:
+  main:
+    banner-mode: off
+  ai:
+    model:
+      chat: ${AI_PROVIDER:openai}
+      # The OpenAI starter auto-configures every model type it knows - image, speech,
+      # transcription, moderation - not just chat. Without switching the unused ones off,
+      # running with AI_PROVIDER=ollama still fails at startup on a missing OpenAI key.
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: claude-sonnet-5
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: llama3.2
+          # Ollama defaults to a small context and truncates from the front, silently.
+          num-ctx: 8192
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: WARN

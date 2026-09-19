@@ -1,0 +1,31 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  ai:
+    model:
+      chat: none
+      # Anthropic has no embedding endpoint, so this recipe offers OpenAI and Ollama only.
+      embedding: ${EMBEDDING_PROVIDER:openai}
+      # The OpenAI starter auto-configures every model type it knows - image, speech,
+      # transcription, moderation - not just chat. Without switching the unused ones off,
+      # running with AI_PROVIDER=ollama still fails at startup on a missing OpenAI key.
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      embedding:
+        options:
+          model: text-embedding-3-small
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        options:
+          model: nomic-embed-text
+
+logging:
+  level:
+    root: WARN

@@ -1,0 +1,54 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  ai:
+    model:
+      chat: ${AI_PROVIDER:openai}
+      embedding: ${EMBEDDING_PROVIDER:openai}
+      # The OpenAI starter auto-configures every model type it knows - image, speech,
+      # transcription, moderation - not just chat. Without switching the unused ones off,
+      # running with AI_PROVIDER=ollama still fails at startup on a missing OpenAI key.
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.2
+      embedding:
+        options:
+          model: text-embedding-3-small
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: llama3.2
+          # Ollama defaults to a small context and truncates from the front, silently.
+          num-ctx: 8192
+      embedding:
+        options:
+          model: nomic-embed-text
+    vectorstore:
+      pgvector:
+        # The table and index are created on first start. In production you own this schema,
+        # so turn both off and manage it with your migration tool.
+        initialize-schema: true
+        index-type: hnsw
+        distance-type: cosine_distance
+        # Left unset on purpose: the store then asks the embedding model how wide its vectors are.
+        # Pin it only when you own the schema, and then it has to match the model exactly -
+        # 1536 for text-embedding-3-small, 768 for nomic-embed-text. A mismatch fails on INSERT,
+        # not at startup, with "expected 1536 dimensions, not 768".
+        table-name: handbook_chunks
+  docker:
+    compose:
+      lifecycle-management: start_and_stop
+
+logging:
+  level:
+    root: WARN

@@ -1,0 +1,30 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      init:
+        # Pulls the models on startup if they are not there yet. First run takes a few minutes.
+        pull-model-strategy: when_missing
+        chat:
+          additional-models:
+            - ${OLLAMA_CHAT_MODEL:llama3.2}
+        embedding:
+          additional-models:
+            - ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+      chat:
+        options:
+          model: ${OLLAMA_CHAT_MODEL:llama3.2}
+          temperature: 0.2
+          # Local models default to a small context. Set it explicitly or long prompts are
+          # silently truncated from the front.
+          num-ctx: 8192
+      embedding:
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+
+logging:
+  level:
+    root: WARN

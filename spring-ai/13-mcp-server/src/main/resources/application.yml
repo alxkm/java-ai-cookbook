@@ -1,0 +1,20 @@
+spring:
+  main:
+    banner-mode: off
+  ai:
+    mcp:
+      server:
+        name: acme-orders
+        version: 1.0.0
+        # Streamable HTTP, the transport current MCP clients speak. One endpoint (/mcp),
+        # not the two that the older SSE transport needs.
+        protocol: STREAMABLE
+        instructions: >
+          Order status and delivery estimates for the Acme store.
+
+server:
+  port: 8081
+
+logging:
+  level:
+    root: WARN
