@@ -21,7 +21,7 @@ jobs:
     outputs:
       recipes: ${{ steps.list.outputs.recipes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: list
         run: |
           recipes=$(find spring-ai langchain4j -mindepth 1 -maxdepth 1 -type d \
@@ -38,7 +38,7 @@ jobs:
         recipe: ${{ fromJson(needs.discover.outputs.recipes) }}
     name: ${{ matrix.recipe }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-java@v4
         with:
@@ -58,7 +58,7 @@ jobs:
   links:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
