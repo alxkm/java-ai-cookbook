@@ -1,0 +1,4 @@
+# Every pull request automatically requests a review from the repository owner.
+# On a personal repository this is what "nothing lands without me" looks like: outside
+# contributors work from a fork, and the merge button stays with the owner either way.
+* @alxkm
