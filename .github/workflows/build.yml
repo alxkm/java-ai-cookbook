@@ -1,0 +1,79 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The recipes are independent projects with no aggregator pom, so the matrix is discovered from
+  # the tree instead of being maintained by hand. A new recipe folder is picked up on its own.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      recipes: ${{ steps.list.outputs.recipes }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: |
+          recipes=$(find spring-ai langchain4j -mindepth 1 -maxdepth 1 -type d \
+                      -exec test -f '{}/pom.xml' \; -print | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "recipes=$recipes" >> "$GITHUB_OUTPUT"
+
+  recipe:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe: ${{ fromJson(needs.discover.outputs.recipes) }}
+    name: ${{ matrix.recipe }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # Defensive: the index should already carry mode 100755 (tools/fix_exec_bits.sh), but a
+      # wrapper committed from Windows without it would fail here with "Permission denied".
+      - run: chmod +x "${{ matrix.recipe }}/mvnw"
+
+      # No API keys are set anywhere in CI. Every test stubs the model; a test that needs a real
+      # provider is gated on COOKBOOK_LIVE and skips itself.
+      - run: ./mvnw -B --no-transfer-progress clean test
+        working-directory: ${{ matrix.recipe }}
+
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tools/check_links.py
+
+  # Single required status check. The matrix job names change whenever a recipe is added, so
+  # branch protection points at this one instead.
+  build:
+    if: always()
+    needs: [recipe, links]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any job failed
+        run: |
+          echo "recipe: ${{ needs.recipe.result }}"
+          echo "links:  ${{ needs.links.result }}"
+          [ "${{ needs.recipe.result }}" = "success" ] || exit 1
+          [ "${{ needs.links.result }}" = "success" ] || exit 1

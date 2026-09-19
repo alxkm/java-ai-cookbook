@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Spring AI documentation
+    url: https://docs.spring.io/spring-ai/reference/
+    about: Questions about the framework itself rather than a recipe in this repo.
+  - name: LangChain4j documentation
+    url: https://docs.langchain4j.dev
+    about: Questions about the framework itself rather than a recipe in this repo.
