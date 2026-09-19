@@ -1,6 +1,6 @@
 # java-ai-cookbook
 
-🌊 Runnable, minimal LLM examples for Java - **Spring AI** & **LangChain4j**.
+Runnable, minimal LLM examples for Java - **Spring AI** & **LangChain4j**.
 RAG, agents, MCP servers, tool calling, structured output, evals.
 
 **One folder = one command.** Every example is isolated, has its own build, and runs in under a minute.
