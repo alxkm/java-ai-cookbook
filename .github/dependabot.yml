@@ -1,298 +1,38 @@
-# One entry per recipe: the projects are independent, each pins its own versions, and there is no
-# aggregator pom for Dependabot to walk. Adding a recipe means adding an entry here by hand.
+# One grouped pull request per ecosystem, not one per dependency per recipe.
+#
+# The first version of this file listed all 36 projects separately with a per-project PR limit.
+# Dependabot ran on the first push and opened well over a hundred pull requests, each triggering
+# the full CI matrix. Two things keep that from happening again: `directories` with a glob, so all
+# 36 poms are one update config, and a group matching every pattern, so they land in one PR.
+#
+# Grouping is also the honest shape here - the versions are deliberately identical across every
+# pom, so they should move together or not at all.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: ci
 
   - package-ecosystem: maven
-    directory: "/langchain4j/01-chat-basic"
+    directories:
+      - "/spring-ai/*"
+      - "/langchain4j/*"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/02-streaming"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/03-structured-output"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/04-tool-calling"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/05-memory"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/06-embeddings"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/07-rag-minimal"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/08-rag-pgvector"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/09-rag-advanced"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/10-agent-react"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/11-multi-agent"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/12-mcp-client"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/13-mcp-server"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/14-multimodal"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/15-guardrails"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/16-observability"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/17-evals"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/langchain4j/18-ollama"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/01-chat-basic"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/02-streaming"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/03-structured-output"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/04-tool-calling"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/05-memory"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/06-embeddings"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/07-rag-minimal"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/08-rag-pgvector"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/09-rag-advanced"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/10-agent-react"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/11-multi-agent"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/12-mcp-client"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/13-mcp-server"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/14-multimodal"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/15-guardrails"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/16-observability"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/17-evals"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: maven
-    directory: "/spring-ai/18-ollama"
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      maven:
+        patterns: ["*"]
+    # Major bumps are a deliberate decision here, not a chore. The README advertises Spring AI 1.x
+    # and LangChain4j 1.x, and the 2.x APIs have not been verified against these recipes.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: deps
