@@ -69,7 +69,7 @@
     <dependency>
       <groupId>io.modelcontextprotocol.sdk</groupId>
       <artifactId>mcp-json-jackson2</artifactId>
-      <version>0.18.3</version>
+      <version>2.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty.ee10</groupId>
