@@ -15,15 +15,13 @@ spring:
           additional-models:
             - ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
       chat:
-        options:
-          model: ${OLLAMA_CHAT_MODEL:llama3.2}
-          temperature: 0.2
-          # Local models default to a small context. Set it explicitly or long prompts are
-          # silently truncated from the front.
-          num-ctx: 8192
+        model: ${OLLAMA_CHAT_MODEL:llama3.2}
+        temperature: 0.2
+        # Local models default to a small context. Set it explicitly or long prompts are
+        # silently truncated from the front.
+        num-ctx: 8192
       embedding:
-        options:
-          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+        model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
 
 logging:
   level:

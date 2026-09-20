@@ -19,22 +19,18 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:}
       chat:
-        options:
-          model: gpt-4o-mini
-          temperature: 0.2
+        model: gpt-4o-mini
+        temperature: 0.2
       embedding:
-        options:
-          model: text-embedding-3-small
+        model: text-embedding-3-small
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
-        options:
-          model: llama3.2
-          # Ollama defaults to a small context and truncates from the front, silently.
-          num-ctx: 8192
+        model: llama3.2
+        # Ollama defaults to a small context and truncates from the front, silently.
+        num-ctx: 8192
       embedding:
-        options:
-          model: nomic-embed-text
+        model: nomic-embed-text
 
 logging:
   level:
