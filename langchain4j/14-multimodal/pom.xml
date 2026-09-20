@@ -15,7 +15,7 @@
     <maven.compiler.parameters>true</maven.compiler.parameters>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <langchain4j.version>1.20.0</langchain4j.version>
-    <junit.version>5.11.4</junit.version>
+    <junit.version>6.1.3</junit.version>
     <assertj.version>3.27.7</assertj.version>
     <exec.mainClass>com.example.cookbook.Multimodal</exec.mainClass>
   </properties>
@@ -59,7 +59,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>2.0.16</version>
+      <version>2.0.19</version>
     </dependency>
 
     <dependency>
@@ -80,7 +80,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.4</version>
         <configuration>
           <mainClass>${exec.mainClass}</mainClass>
         </configuration>
@@ -88,7 +88,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.5.2</version>
+        <version>3.6.0</version>
       </plugin>
     </plugins>
   </build>
