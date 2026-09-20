@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Map;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
+
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -59,7 +62,11 @@ class OrderMcpServerTest {
                 .orElseThrow();
 
         assertThat(orderStatus.description()).contains("delivery status");
-        assertThat(orderStatus.inputSchema().required()).containsExactly("orderId");
+        // MCP 2.0 hands back the raw JSON Schema as a Map instead of a typed object, so the
+        // required list is read out by key rather than by getter.
+        assertThat(orderStatus.inputSchema())
+                .extractingByKey("required", as(InstanceOfAssertFactories.list(String.class)))
+                .containsExactly("orderId");
     }
 
     @Test
