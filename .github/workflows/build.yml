@@ -53,6 +53,26 @@ jobs:
       # wrapper committed from Windows without it would fail here with "Permission denied".
       - run: chmod +x "${{ matrix.recipe }}/mvnw"
 
+      # The wrapper is distributionType=only-script, so every job downloads the Maven
+      # distribution itself - 36 times per run. Caching it makes that one download per version.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/wrapper
+          key: maven-wrapper-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
+
+      # Kept separate from the test run on purpose. Maven Central refused one of the 36 parallel
+      # downloads once and the job failed before a single test started, which reads as a broken
+      # recipe. Retry the fetch here; never retry the tests, or a flaky test hides behind it.
+      - name: Warm the Maven distribution
+        working-directory: ${{ matrix.recipe }}
+        run: |
+          for attempt in 1 2 3; do
+            ./mvnw -B -v && exit 0
+            echo "wrapper download attempt $attempt failed, retrying"
+            sleep 10
+          done
+          exit 1
+
       # No API keys are set anywhere in CI. Every test stubs the model; a test that needs a real
       # provider is gated on COOKBOOK_LIVE and skips itself.
       - run: ./mvnw -B --no-transfer-progress clean test
