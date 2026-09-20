@@ -45,11 +45,12 @@ class AgentLoop {
     }
 
     Outcome run(String systemPrompt, String question) {
-        // internalToolExecutionEnabled(false) is what hands the loop back to us: the model is told
-        // about the tools, but Spring AI stops after the tool call instead of executing it.
+        // Spring AI 2.0 removed the tool-execution loop from ChatModel, so the model reports the
+        // tool call and stops - running it is the caller's job. Until 2.0 this recipe had to ask
+        // for that explicitly with internalToolExecutionEnabled(false); now it is the only
+        // behaviour, which is why the loop below reads the same as it always did.
         ToolCallingChatOptions options = ToolCallingChatOptions.builder()
                 .toolCallbacks(ToolCallbacks.from(tools))
-                .internalToolExecutionEnabled(false)
                 .build();
 
         List<Message> conversation = new ArrayList<>(List.of(

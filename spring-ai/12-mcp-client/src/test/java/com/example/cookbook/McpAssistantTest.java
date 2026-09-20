@@ -6,6 +6,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.support.ToolCallbacks;
@@ -38,9 +39,22 @@ class McpAssistantTest {
     void advertisesToolsItNeverDeclared() {
         AtomicReference<Prompt> captured = new AtomicReference<>();
 
-        ChatModel stub = prompt -> {
-            captured.set(prompt);
-            return new ChatResponse(List.of(new Generation(new AssistantMessage("ok"))));
+        // getOptions() is what decides whether tool calling engages at all. ChatClient builds the
+        // prompt options from it, and ToolCallingAdvisor passes the request straight through
+        // when they are not a ToolCallingChatOptions - which is how a model that cannot call
+        // tools opts out. A lambda stub inherits the default, so the tools would be dropped
+        // silently and this test would be asserting nothing.
+        ChatModel stub = new ChatModel() {
+            @Override
+            public ChatResponse call(Prompt prompt) {
+                captured.set(prompt);
+                return new ChatResponse(List.of(new Generation(new AssistantMessage("ok"))));
+            }
+
+            @Override
+            public ChatOptions getOptions() {
+                return ToolCallingChatOptions.builder().build();
+            }
         };
 
         ToolCallbackProvider provider = ToolCallbackProvider.from(ToolCallbacks.from(new RemoteTools()));
