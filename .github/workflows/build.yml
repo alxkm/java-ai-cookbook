@@ -62,12 +62,36 @@ jobs:
           done
           exit 1
 
+      - id: deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-deps-${{ hashFiles('**/pom.xml') }}
+
+      # The recipes share almost all of their dependencies, so fetching two of them here
+      # pulls down the bulk once. Without this every job resolves the same tree at the same
+      # moment and Maven Central answers some of them with 429, which fails the job before a
+      # test runs. That is what happened on the Spring AI 2.0 upgrade, when the whole
+      # dependency set was new and no cache existed yet.
+      - if: steps.deps.outputs.cache-hit != 'true'
+        run: |
+          for recipe in spring-ai/01-chat-basic langchain4j/01-chat-basic; do
+            chmod +x "$recipe/mvnw"
+            for attempt in 1 2 3; do
+              (cd "$recipe" && ./mvnw -B -q --no-transfer-progress dependency:go-offline) && break
+              echo "$recipe: dependency fetch attempt $attempt failed, retrying"
+              sleep 30
+            done
+          done
+
   recipe:
     needs: [discover, prime]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
+      # Capped so a cache miss cannot put 36 simultaneous resolvers on Maven Central.
+      max-parallel: 8
       matrix:
         recipe: ${{ fromJson(needs.discover.outputs.recipes) }}
     name: ${{ matrix.recipe }}
@@ -78,17 +102,21 @@ jobs:
         with:
           java-version: '21'
           distribution: temurin
-          cache: maven
 
       # Defensive: the index should already carry mode 100755 (tools/fix_exec_bits.sh), but a
       # wrapper committed from Windows without it would fail here with "Permission denied".
       - run: chmod +x "${{ matrix.recipe }}/mvnw"
 
-      # Populated by the prime job above, so this is a hit and nothing is downloaded.
+      # Both are populated by the prime job above, so these are hits and nothing is fetched.
       - uses: actions/cache@v4
         with:
           path: ~/.m2/wrapper
           key: maven-wrapper-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-deps-${{ hashFiles('**/pom.xml') }}
 
       # A fallback for a cache miss, kept separate from the test run: a download failure must not
       # look like a failing recipe. The tests themselves are never retried - that would hide a
