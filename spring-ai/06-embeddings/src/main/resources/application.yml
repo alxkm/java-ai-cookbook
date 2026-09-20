@@ -18,13 +18,11 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:}
       embedding:
-        options:
-          model: text-embedding-3-small
+        model: text-embedding-3-small
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
-        options:
-          model: nomic-embed-text
+        model: nomic-embed-text
 
 logging:
   level:

@@ -17,22 +17,19 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:}
       chat:
-        options:
-          model: gpt-4o-mini
+        model: gpt-4o-mini
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
       chat:
-        options:
-          model: claude-sonnet-5
+        model: claude-sonnet-5
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
-        options:
-          # a vision model is required here; plain llama3.2 has no image input.
-          # llava is the usual choice; moondream is far smaller if disk is tight.
-          model: ${OLLAMA_CHAT_MODEL:llava}
-          # Ollama defaults to a small context and truncates from the front, silently.
-          num-ctx: 8192
+        # a vision model is required here; plain llama3.2 has no image input.
+        # llava is the usual choice; moondream is far smaller if disk is tight.
+        model: ${OLLAMA_CHAT_MODEL:llava}
+        # Ollama defaults to a small context and truncates from the front, silently.
+        num-ctx: 8192
 
 logging:
   level:
