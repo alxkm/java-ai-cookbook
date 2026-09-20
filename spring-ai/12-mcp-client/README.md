@@ -42,6 +42,11 @@ MCP_SERVER_URL=http://localhost:9000 ./mvnw spring-boot:run
   model will pass whatever comes back straight into its answer.
 - Never connect to an MCP server you do not trust. Tool descriptions are prompt text, and they
   are written by whoever runs the server.
+- Tool calling engages only if the model's `getOptions()` returns a `ToolCallingChatOptions`.
+  `ToolCallingAdvisor` passes the request through untouched otherwise, which is how a model
+  that cannot call tools opts out - and also how a hand-written test double silently drops
+  every tool while still returning an answer. `getDefaultOptions()` is deprecated in 2.0 and
+  overriding it does nothing here.
 
 ---
 
