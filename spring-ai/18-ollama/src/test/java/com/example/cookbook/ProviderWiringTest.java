@@ -23,7 +23,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProviderWiringTest {
 
     @Nested
-    @SpringBootTest(properties = "spring.ai.ollama.base-url=http://localhost:11434")
+    @SpringBootTest(properties = {
+            // Deliberately a port nothing listens on. This test asserts wiring, so it never needs
+            // a reachable Ollama - and pinning it to a dead address is what stops the recipe from
+            // quietly depending on one again.
+            "spring.ai.ollama.base-url=http://127.0.0.1:1",
+            // Without this the autoconfiguration calls GET /api/tags while the chat model bean is
+            // being built, to pull whatever is missing. Right for main(), fatal here: the context
+            // died before a single assertion ran, so this passed on a machine with Ollama running
+            // and failed on the CI runner.
+            "spring.ai.ollama.init.pull-model-strategy=never"
+    })
     @ActiveProfiles("test")
     class WithOllama {
 
