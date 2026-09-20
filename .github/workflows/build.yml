@@ -24,7 +24,7 @@ jobs:
     outputs:
       recipes: ${{ steps.list.outputs.recipes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: list
         run: |
           recipes=$(find spring-ai langchain4j -mindepth 1 -maxdepth 1 -type d \
@@ -38,15 +38,15 @@ jobs:
   prime:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: temurin
 
       - id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/wrapper
           key: maven-wrapper-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
@@ -63,7 +63,7 @@ jobs:
           exit 1
 
       - id: deps
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: maven-deps-${{ hashFiles('**/pom.xml') }}
@@ -96,9 +96,9 @@ jobs:
         recipe: ${{ fromJson(needs.discover.outputs.recipes) }}
     name: ${{ matrix.recipe }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: temurin
@@ -108,12 +108,12 @@ jobs:
       - run: chmod +x "${{ matrix.recipe }}/mvnw"
 
       # Both are populated by the prime job above, so these are hits and nothing is fetched.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/wrapper
           key: maven-wrapper-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: maven-deps-${{ hashFiles('**/pom.xml') }}
@@ -139,8 +139,8 @@ jobs:
   links:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: python tools/check_links.py
