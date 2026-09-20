@@ -29,10 +29,9 @@ updates:
     groups:
       maven:
         patterns: ["*"]
-    # Major bumps are a deliberate decision here, not a chore. The README advertises Spring AI 1.x
-    # and LangChain4j 1.x, and the 2.x APIs have not been verified against these recipes.
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    # No blanket major-version ignore. The previous one was written while the recipes were on
+    # Spring AI 1.x, and it went on to hide the fact that Spring Boot 3.5 had reached the end of
+    # its OSS support - exactly the bump it most needed to surface. Majors here are a decision
+    # to make, which means they have to be visible enough to decide about.
     commit-message:
       prefix: deps

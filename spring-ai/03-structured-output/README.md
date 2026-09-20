@@ -24,7 +24,7 @@ export OPENAI_API_KEY=sk-...
   at runtime with a useless error, because the element type is erased.
 - Schema instructions are prompt text, not a hard guarantee. A small local model will still hand you
   prose sometimes - wrap the call in a retry, or turn on the provider's native structured output
-  (`spring.ai.openai.chat.options.response-format`).
+  (`spring.ai.openai.chat.response-format`).
 - Field names in the record are the field names in the schema. Renaming a record component changes
   the prompt.
 
