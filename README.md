@@ -5,7 +5,7 @@ RAG, agents, MCP servers, tool calling, structured output, evals.
 
 **One folder = one command.** Every example is isolated, has its own build, and runs in under a minute.
 
-[![build](https://github.com/alxkm/java-ai-cookbook/actions/workflows/build.yml/badge.svg)](https://github.com/alxkm/java-ai-cookbook/actions/workflows/build.yml)
+[![build](https://github.com/alxkm/java-ai-cookbook/actions/workflows/build.yml/badge.svg?branch=main&event=push)](https://github.com/alxkm/java-ai-cookbook/actions/workflows/build.yml)
 [![Java](https://img.shields.io/badge/Java-21+-blue)](https://adoptium.net)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-1.x-6DB33F)](https://docs.spring.io/spring-ai/reference/)
 [![LangChain4j](https://img.shields.io/badge/LangChain4j-1.x-orange)](https://docs.langchain4j.dev)

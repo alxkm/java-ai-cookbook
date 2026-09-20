@@ -9,9 +9,12 @@ on:
 permissions:
   contents: read
 
+# Superseded pull request runs are worth cancelling; runs on main are not. Merging three pull
+# requests inside a minute killed the first two runs, main was left with a cancelled run as its
+# newest result, and the badge went red while every recipe was passing.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The recipes are independent projects with no aggregator pom, so the matrix is discovered from
