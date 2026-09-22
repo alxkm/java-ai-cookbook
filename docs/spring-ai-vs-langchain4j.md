@@ -89,9 +89,30 @@ LangChain4j is a client only. [Recipe 13](../langchain4j/13-mcp-server) on the L
 an embedded Jetty, and writes the tool schemas by hand - which is worth seeing once, but it is more
 code for the same result.
 
-Both pairs speak streamable HTTP. Spring AI still defaults to the older SSE transport
-(`spring.ai.mcp.server.protocol`), and LangChain4j has dropped it from the client side entirely, so
-the default is the wrong one to leave in place.
+Both pairs speak streamable HTTP, and as of Spring AI 2.0 it is the default on both sides - the SSE
+transport it used to default to is deprecated, and LangChain4j dropped it from the client entirely.
+
+### Retries and rate limits
+
+Spring AI configures retrying; LangChain4j types it.
+
+Spring AI gives you a property block - `spring.ai.retry.max-attempts`, the backoff curve,
+`on-client-errors`, per-status include and exclude lists - and applies it underneath every model
+([recipe 19](../spring-ai/19-retry)). Read the defaults before you rely on them: ten attempts, a 2s
+initial interval, a multiplier of 5 and a 3-minute ceiling multiply out to roughly nineteen minutes
+of waiting on one call. There is no jitter, so every client that saw the same 429 comes back at the
+same moment.
+
+LangChain4j gives you `maxRetries` on the model builder and nothing else - the curve lives in
+`RetryUtils` and is not reachable from there - but it sorts its exceptions properly:
+`RateLimitException`, `TimeoutException` and `InternalServerException` extend `RetriableException`,
+`AuthenticationException` and `InvalidRequestException` extend `NonRetriableException`
+([recipe 19](../langchain4j/19-retry)). Deciding what to repeat is two `instanceof` checks instead
+of a status-code table, and it has jitter by default.
+
+Neither bounds an operation in wall-clock time. Both express attempts and backoff and leave the
+total as something you are expected to multiply out yourself, which is exactly how the nineteen
+minutes goes unnoticed. Recipe 19 wraps both in the same small budget for that reason.
 
 ### Evals
 
