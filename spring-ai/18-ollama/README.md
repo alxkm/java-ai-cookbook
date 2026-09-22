@@ -41,4 +41,4 @@ minutes. Nothing leaves your machine.
 
 ---
 
-[All recipes](../../README.md) | [Same recipe in LangChain4j](../../langchain4j/18-ollama) | [Previous: 17 Evals](../17-evals)
+[All recipes](../../README.md) | [Same recipe in LangChain4j](../../langchain4j/18-ollama) | [Previous: 17 Evals](../17-evals) | [Next: 19 Retry and rate limits](../19-retry)

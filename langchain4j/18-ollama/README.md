@@ -41,4 +41,4 @@ OLLAMA_CHAT_MODEL=llama3.1:8b ./mvnw -q compile exec:java
 
 ---
 
-[All recipes](../../README.md) | [Same recipe in Spring AI](../../spring-ai/18-ollama) | [Previous: 17 Evals](../17-evals)
+[All recipes](../../README.md) | [Same recipe in Spring AI](../../spring-ai/18-ollama) | [Previous: 17 Evals](../17-evals) | [Next: 19 Retry and rate limits](../19-retry)
