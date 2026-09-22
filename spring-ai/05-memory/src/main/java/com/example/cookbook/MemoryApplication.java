@@ -3,6 +3,7 @@ package com.example.cookbook;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -18,12 +19,19 @@ public class MemoryApplication {
     }
 
     /**
-     * A sliding window over the last N messages. Old turns are dropped, not summarised -
-     * that is the trade-off you get for free.
+     * The window and the storage are two separate decisions, which is easy to miss because the
+     * default wiring makes one choice for both.
+     *
+     * MessageWindowChatMemory is the window: the last N messages go to the model, older turns are
+     * dropped rather than summarised. The repository underneath it is the storage, and swapping it
+     * is what decides whether the history survives a restart. The window does not change either way.
      */
     @Bean
-    ChatMemory chatMemory() {
-        return MessageWindowChatMemory.builder().maxMessages(10).build();
+    ChatMemory chatMemory(ChatMemoryRepository repository) {
+        return MessageWindowChatMemory.builder()
+                .chatMemoryRepository(repository)
+                .maxMessages(10)
+                .build();
     }
 
     @Bean
@@ -37,13 +45,18 @@ public class MemoryApplication {
     // The demo output is not wanted during tests; @SpringBootTest runs CommandLineRunner beans.
     @Profile("!test")
     @Bean
-    CommandLineRunner run(ChatClient chatClient) {
+    CommandLineRunner run(ChatClient chatClient, ChatMemoryRepository repository) {
         return args -> {
             // Two separate conversations, same ChatClient. The id is what keeps them apart.
             ask(chatClient, "alice", "My name is Alice and I work on payments.");
             ask(chatClient, "bob", "My name is Bob and I work on search.");
             ask(chatClient, "alice", "What do I work on?");
             ask(chatClient, "bob", "What do I work on?");
+
+            // Proof that the history is not only in this JVM: it is rows in a table, and the ids
+            // are there to be listed, resumed or deleted without going through the model.
+            System.out.println("conversations on disk: " + repository.findConversationIds());
+            System.out.println("run this again and Alice already knows what she works on.");
         };
     }
 

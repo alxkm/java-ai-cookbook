@@ -2,6 +2,12 @@ spring:
   main:
     web-application-type: none
     banner-mode: off
+  # A file-backed H2, so the history is still there after a restart - which is the whole point
+  # of the persisted half. Swap the url for a real datasource and nothing else changes.
+  datasource:
+    url: jdbc:h2:file:./data/chat-memory;AUTO_SERVER=TRUE
+    username: sa
+    password:
   ai:
     # Auto-configuration picks the provider named here. Everything else stays the same.
     model:
@@ -15,6 +21,13 @@ spring:
       audio:
         speech: none
         transcription: none
+    # Creates SPRING_AI_CHAT_MEMORY if it is not there yet. Left unset the repository assumes
+    # someone else owns the schema and fails on the first query instead.
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
     openai:
       api-key: ${OPENAI_API_KEY:}
       chat:
