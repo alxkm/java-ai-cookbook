@@ -62,6 +62,13 @@
       <version>2.0.19</version>
     </dependency>
 
+    <!-- The persisted half of this recipe. File-backed H2 so it runs with no Docker and no
+         server; JdbcChatMemoryStore is plain JDBC and does not care which database it is. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.4.240</version>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
