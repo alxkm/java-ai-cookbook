@@ -48,4 +48,4 @@ gave up after 3 attempt(s) in PT5.34S: java.net.ConnectException
 
 ---
 
-[All recipes](../../README.md) | [Same recipe in Spring AI](../../spring-ai/19-retry) | [Previous: 18 Local models](../18-ollama)
+[All recipes](../../README.md) | [Same recipe in Spring AI](../../spring-ai/19-retry) | [Previous: 18 Local models](../18-ollama) | [Next: 20 Progressive tool disclosure](../20-tool-search)

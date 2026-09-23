@@ -57,6 +57,7 @@ That's it. Open the folder of any recipe and run the command in its README.
 | 17 | Evals | [→](spring-ai/17-evals) | [→](langchain4j/17-evals) | LLM-as-judge, regression tests for prompts |
 | 18 | Local models | [→](spring-ai/18-ollama) | [→](langchain4j/18-ollama) | Ollama, no API key, offline |
 | 19 | Retry & rate limits | [→](spring-ai/19-retry) | [→](langchain4j/19-retry) | 429s, backoff with jitter, a wall-clock budget |
+| 20 | Progressive tool disclosure | [→](spring-ai/20-tool-search) | [→](langchain4j/20-tool-search) | Hundreds of tools without hundreds of tool definitions |
 
 More recipes are added regularly - see [open issues](../../issues) for what's next, or propose one.
 
