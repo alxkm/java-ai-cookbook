@@ -1,0 +1,54 @@
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  ai:
+    # Auto-configuration picks the provider named here. Everything else stays the same.
+    model:
+      chat: ${AI_PROVIDER:openai}
+      # The OpenAI starter auto-configures every model type it knows - image, speech,
+      # transcription, moderation - not just chat. Without switching the unused ones off,
+      # running with AI_PROVIDER=ollama still fails at startup on a missing OpenAI key.
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    # The advisor is off unless you say otherwise, and it is wired by hand in
+    # ToolSearchApplication anyway - these are here so the knobs are visible in one place.
+    chat:
+      client:
+        tool-search-advisor:
+          enabled: true
+          # Defaults to regex even though the starter pulls in Lucene. Adding the dependency
+          # is not the same as using it.
+          tool-index-type: lucene
+          max-results: 3
+          lucene:
+            # Below this BM25 score a match is not offered at all. Too high and a question
+            # phrased in the user's words finds nothing; too low and the shortlist is noise.
+            min-score-threshold: 0.25
+          eviction:
+            # The index is per session, so it grows with conversations, not with tools.
+            lru-max-sessions: 100
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        model: gpt-4o-mini
+        temperature: 0.2
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        model: claude-sonnet-5
+        temperature: 0.2
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        model: llama3.2
+        # Ollama defaults to a small context and truncates from the front, silently.
+        num-ctx: 8192
+
+logging:
+  level:
+    root: WARN
