@@ -80,7 +80,7 @@ Write the Gotchas from something you actually hit. "Remember to set the API key"
 cd <framework>/<nn>-<name>
 ./mvnw clean test
 
-bash tools/test_all.sh          # or all 36 at once, one line each
+bash tools/test_all.sh          # or all of them at once, one line each
 ```
 
 Tests must pass with no API key set and no network. If a test genuinely needs Docker (recipe 08) it

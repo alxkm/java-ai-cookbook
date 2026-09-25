@@ -64,7 +64,7 @@ More recipes are added regularly - see [open issues](../../issues) for what's ne
 ## Docs
 
 - [Spring AI vs LangChain4j](docs/spring-ai-vs-langchain4j.md) - a side-by-side comparison written
-  after implementing all 18 patterns twice, with links into the code for every claim.
+  after implementing all 20 patterns twice, with links into the code for every claim.
 - [Choosing a model](docs/choosing-a-model.md) - which model for which recipe, what it costs, and
   what breaks when you go smaller.
 - [CONTRIBUTING.md](CONTRIBUTING.md) - the recipe template and the conventions.
