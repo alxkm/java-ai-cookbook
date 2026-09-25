@@ -3,7 +3,7 @@
 Both libraries do the same job. They disagree about where the abstraction belongs, and that
 disagreement is what you are actually choosing between.
 
-Everything below comes from writing the same 18 recipes twice. Where one library needed more code,
+Everything below comes from writing the same 20 recipes twice. Where one library needed more code,
 it is noted; where one needed less code but hid something, that is noted too.
 
 ## The one-line version
