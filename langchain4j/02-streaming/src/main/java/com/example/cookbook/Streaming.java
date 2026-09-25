@@ -41,7 +41,10 @@ public class Streaming {
 
             @Override
             public void onCompleteResponse(ChatResponse response) {
-                System.out.printf("%n%n[done, %d tokens]%n", response.tokenUsage().totalTokenCount());
+                // tokenUsage() is null for providers that do not report it on a stream, and
+                // printing it unguarded turns a finished answer into a stack trace.
+                System.out.printf("%n%n[done, %s tokens]%n", response.tokenUsage() == null
+                        ? "unreported" : response.tokenUsage().totalTokenCount());
                 done.countDown();
             }
 
@@ -56,7 +59,8 @@ public class Streaming {
         done.await();
     }
 
-    private static void serveSse(StreamingChatModel model, int port) throws IOException {
+    /** Returns the server so a test can start it on port 0 and stop it again. */
+    static HttpServer serveSse(StreamingChatModel model, int port) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/chat/stream", exchange -> {
             String query = exchange.getRequestURI().getQuery();
@@ -74,18 +78,19 @@ public class Streaming {
             model.chat(List.<ChatMessage>of(UserMessage.from(question)), new StreamingChatResponseHandler() {
                 @Override
                 public void onPartialResponse(String token) {
-                    write(out, "data: " + token.replace("\n", "\n") + "\n\n");
+                    write(out, Sse.data(token));
                 }
 
                 @Override
                 public void onCompleteResponse(ChatResponse response) {
-                    write(out, "event: done\ndata: \n\n");
+                    write(out, Sse.event("done", ""));
                     done.countDown();
                 }
 
                 @Override
                 public void onError(Throwable error) {
-                    write(out, "event: error\ndata: " + error.getMessage() + "\n\n");
+                    // getMessage() can be null and can contain newlines; both would break the frame.
+                    write(out, Sse.event("error", String.valueOf(error.getMessage())));
                     done.countDown();
                 }
             });
@@ -99,8 +104,10 @@ public class Streaming {
         });
         server.setExecutor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
         server.start();
-        System.out.println("SSE endpoint: curl -N 'http://localhost:" + port + "/chat/stream?q=hello'");
+        System.out.println("SSE endpoint: curl -N 'http://localhost:" + server.getAddress().getPort()
+                + "/chat/stream?q=hello'");
         System.out.println("Ctrl+C to stop.");
+        return server;
     }
 
     private static void write(OutputStream out, String chunk) {
