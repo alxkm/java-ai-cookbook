@@ -14,9 +14,10 @@ The image is `src/main/resources/images/chart.png` - a four-bar chart. Swap it f
 
 ## Where to look
 
-- [`Multimodal.java`](src/main/java/com/example/cookbook/Multimodal.java) - `UserMessage.from(TextContent, ImageContent)`. The image is base64, inlined
-  in the request.
-- [`MultimodalTest.java`](src/test/java/com/example/cookbook/MultimodalTest.java) - asserts both contents are present and the mime type is right.
+- [`Multimodal.java`](src/main/java/com/example/cookbook/Multimodal.java) - `question(...)` builds `UserMessage.from(TextContent, ImageContent)`; the
+  image is base64, inlined in the request, and `mimeType(...)` reads its type off the first bytes.
+- [`MultimodalTest.java`](src/test/java/com/example/cookbook/MultimodalTest.java) - goes through the recipe's own `question(...)`, and checks the image
+  arrives byte for byte rather than merely "not blank".
 
 ## Gotchas
 
@@ -26,6 +27,8 @@ The image is `src/main/resources/images/chart.png` - a four-bar chart. Swap it f
 - `ImageContent.from(url)` also exists, but the provider then fetches the URL itself - it has to be
   publicly reachable. Base64 avoids that and is the safer default.
 - Images are billed as tokens. Downscale before sending.
+- The mime type goes with the image and the provider takes it at its word, so read it off the
+  file's first bytes. A hardcoded `image/png` holds until the first JPEG someone drops in.
 - Charts are read approximately. Do not use a vision model as an OCR or a data extractor without
   checking the numbers.
 
