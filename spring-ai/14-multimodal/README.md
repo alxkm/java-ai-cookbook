@@ -14,9 +14,11 @@ The image is `src/main/resources/images/chart.png` - a four-bar chart. Swap it f
 
 ## Where to look
 
-- [`MultimodalApplication.java`](src/main/java/com/example/cookbook/MultimodalApplication.java) - `.user(u -> u.text(...).media(MimeTypeUtils.IMAGE_PNG, resource))`.
+- [`MultimodalApplication.java`](src/main/java/com/example/cookbook/MultimodalApplication.java) - `describe(...)`: `.user(u -> u.text(...).media(type, resource))`.
   One message, two parts.
-- [`MultimodalTest.java`](src/test/java/com/example/cookbook/MultimodalTest.java) - asserts the media really is attached, without calling a model.
+- [`ImageTypes.java`](src/main/java/com/example/cookbook/ImageTypes.java) - the mime type read off the image's first bytes.
+- [`MultimodalTest.java`](src/test/java/com/example/cookbook/MultimodalTest.java) - goes through the recipe's own `describe(...)`, including a JPEG saved
+  under a `.png` name.
 
 ## Gotchas
 
@@ -25,7 +27,9 @@ The image is `src/main/resources/images/chart.png` - a four-bar chart. Swap it f
   `OLLAMA_CHAT_MODEL` if you would rather use something smaller, such as `moondream`.
 - Images are billed as tokens, and a large screenshot is expensive. Downscale before sending -
   most questions do not need full resolution.
-- The mime type is not a formality. Send a JPEG labelled `image/png` and the provider rejects it.
+- The mime type is not a formality, and this recipe used to hardcode `IMAGE_PNG` while saying so.
+  `ImageTypes` reads it off the first bytes instead, and refuses a file that is not an image
+  rather than guessing.
 - Charts are read approximately. Do not use a vision model as an OCR or a data extractor without
   checking the numbers.
 
