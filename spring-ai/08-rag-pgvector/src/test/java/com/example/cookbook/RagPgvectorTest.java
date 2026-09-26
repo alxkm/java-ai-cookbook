@@ -36,9 +36,13 @@ class RagPgvectorTest {
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         dataSource.setDriverClassName("org.postgresql.Driver");
 
-        PgVectorStore store = PgVectorStore.builder(new JdbcTemplate(dataSource), new KeywordEmbeddingModel())
+        KeywordEmbeddingModel embeddings = new KeywordEmbeddingModel();
+        PgVectorStore store = PgVectorStore.builder(new JdbcTemplate(dataSource), embeddings)
                 .vectorTableName(table)
-                .dimensions(8)
+                // Asked of the model, never typed in. The recipe learned this the hard way - a
+                // hardcoded 1536 died on the first INSERT with Ollama embeddings - and this test
+                // kept a literal 8 until the stub grew a dimension and the table refused it.
+                .dimensions(embeddings.dimensions())
                 .initializeSchema(true)
                 .build();
 
