@@ -26,6 +26,12 @@ A correct run says so instead of inventing an answer.
 
 - `minScore` is the setting people forget. Without it the retriever always returns something,
   and "something" becomes the answer.
+- **It is also the setting people get wrong, and this recipe did.** `minScore` is a relevance
+  score, `(cosine + 1) / 2`, not a cosine - so the `0.4` it used to have meant cosine -0.2 and
+  let through chunks with *zero* similarity: "what is the capital of France" came back with three
+  chunks of handbook. It is now `RelevanceScore.fromCosineSimilarity(0.4)`, which puts the scale
+  in the code. Spring AI's `similarityThreshold` is a raw cosine, so the same number means
+  something different on the two sides.
 - `DocumentSplitters.recursive(500, 100)` - the second number is the overlap. Zero overlap cuts
   sentences in half at chunk boundaries and costs you recall.
 - `InMemoryEmbeddingStore` re-embeds the whole corpus on every start. Fine for a demo, not for a

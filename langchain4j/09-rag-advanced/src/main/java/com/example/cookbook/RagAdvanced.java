@@ -16,7 +16,8 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import dev.langchain4j.store.embedding.RelevanceScore;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,7 +63,10 @@ public class RagAdvanced {
                         .embeddingStore(store)
                         .embeddingModel(embeddingModel)
                         .maxResults(8)
-                        .minScore(0.3)
+                        // A relevance score, (cosine + 1) / 2 - a bare 0.3 meant cosine -0.4, which is no floor
+                        // at all. Cosine 0.3 is the same over-fetch floor as the Spring side, low on purpose so the
+                        // re-ranker below has candidates to choose between.
+                        .minScore(RelevanceScore.fromCosineSimilarity(0.3))
                         .filter(MetadataFilterBuilder.metadataKey("source").isEqualTo("handbook.md"))
                         .build())
                 .contentAggregator(ReRankingContentAggregator.builder()

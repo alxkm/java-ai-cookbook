@@ -36,6 +36,11 @@ the filter doing its job, not a bug.
   aggregator only reorders, and the weakest chunk still reaches the prompt.
 - A filter on a metadata key that was never set returns nothing, quietly. Set the metadata at
   ingest time, in one place.
+- **`minScore` is a relevance score, `(cosine + 1) / 2`, not a cosine.** A bare `0.4` means
+  cosine -0.2, which lets through chunks with no similarity at all. Write it as
+  `RelevanceScore.fromCosineSimilarity(0.4)` so the scale is in the code. Spring AI's
+  `similarityThreshold` is a raw cosine, so the same number means something different on the
+  two sides.
 
 ---
 

@@ -42,6 +42,11 @@ SQL and the metadata filter are exercised without an API key. Without Docker the
   returns an empty result instead of an error.
 - Re-running ingestion without a guard silently doubles every chunk, and retrieval quality drops
   because the top-k fills up with duplicates.
+- **`minScore` is a relevance score, `(cosine + 1) / 2`, not a cosine.** A bare `0.4` means
+  cosine -0.2, which lets through chunks with no similarity at all. Write it as
+  `RelevanceScore.fromCosineSimilarity(0.4)` so the scale is in the code. Spring AI's
+  `similarityThreshold` is a raw cosine, so the same number means something different on the
+  two sides.
 
 ---
 
