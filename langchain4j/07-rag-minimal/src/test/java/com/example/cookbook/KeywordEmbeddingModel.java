@@ -24,12 +24,14 @@ class KeywordEmbeddingModel implements EmbeddingModel {
 
     private float[] vector(String text) {
         String lower = text == null ? "" : text.toLowerCase(Locale.ROOT);
-        float[] vector = new float[VOCABULARY.size()];
+        float[] vector = new float[VOCABULARY.size() + 1];
         for (int i = 0; i < VOCABULARY.size(); i++) {
             vector[i] = count(lower, VOCABULARY.get(i));
         }
-        // avoid the all-zero vector, which has no defined cosine similarity
-        vector[0] += 0.01f;
+        // The all-zero vector has no defined cosine similarity, so every text gets a little weight
+        // on one extra dimension that no keyword owns. It used to go on dimension 0 - "deploy" -
+        // which quietly turned every off-vocabulary question into a deployment question.
+        vector[VOCABULARY.size()] += 0.01f;
         return vector;
     }
 
