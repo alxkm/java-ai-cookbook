@@ -34,14 +34,7 @@ public class RagMinimalApplication {
                             @Value("classpath:/docs/handbook.md") Resource handbook) {
 
         // load -> split -> embed -> store. In memory, so it is rebuilt on every start.
-        // The splitter default is 800 tokens, which swallows this short handbook whole and leaves
-        // retrieval nothing to choose between. Sizing the chunks to the corpus is not cosmetic:
-        // with one chunk a local model answered the approvals question with the deployment rule,
-        // and with three it quotes the right sentence.
-        List<Document> chunks = TokenTextSplitter.builder()
-                .withChunkSize(100)
-                .withMinChunkSizeChars(50)
-                .build().apply(new TextReader(handbook).get());
+        List<Document> chunks = split(handbook);
 
         SimpleVectorStore store = SimpleVectorStore.builder(embeddingModel).build();
         store.add(chunks);
@@ -55,9 +48,31 @@ public class RagMinimalApplication {
         return builder
                 .defaultSystem("Answer only from the provided context. If it is not there, say so.")
                 .defaultAdvisors(QuestionAnswerAdvisor.builder(vectorStore)
-                        .searchRequest(SearchRequest.builder().topK(3).similarityThreshold(0.4).build())
+                        .searchRequest(retrieval())
                         .build())
                 .build();
+    }
+
+    /**
+     * The splitter default is 800 tokens, which swallows this short handbook whole and leaves
+     * retrieval nothing to choose between. Sizing the chunks to the corpus is not cosmetic: with one
+     * chunk a local model answered the approvals question with the deployment rule, and with three
+     * it quotes the right sentence. A method rather than an inline builder so the test checks these
+     * numbers and not a copy of them.
+     */
+    static List<Document> split(Resource source) {
+        return TokenTextSplitter.builder()
+                .withChunkSize(100)
+                .withMinChunkSizeChars(50)
+                .build().apply(new TextReader(source).get());
+    }
+
+    /**
+     * Three chunks, and nothing below 0.4. The threshold is the setting that decides whether a
+     * weakly related chunk reaches the prompt at all, so it is the one worth testing as-is.
+     */
+    static SearchRequest retrieval() {
+        return SearchRequest.builder().topK(3).similarityThreshold(0.4).build();
     }
 
     // The demo output is not wanted during tests; @SpringBootTest runs CommandLineRunner beans.
