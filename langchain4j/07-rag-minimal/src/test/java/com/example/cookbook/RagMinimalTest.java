@@ -1,22 +1,19 @@
 package com.example.cookbook;
 
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * The point of a RAG test is not the answer, it is the context: did the right chunk end up in
  * the prompt? That can be checked without a model.
+ *
+ * Every test here goes through the recipe's own splitter(), ingest() and retriever(). An earlier
+ * version typed the same splitter and a different retriever out again, so it tested a copy and
+ * would have passed whatever the recipe was set to.
  */
 class RagMinimalTest {
 
@@ -42,36 +43,19 @@ class RagMinimalTest {
         }
     }
 
-    @Test
-    void retrievedChunksAreInjectedIntoThePrompt() {
-        KeywordEmbeddingModel embeddingModel = new KeywordEmbeddingModel();
+    private static final KeywordEmbeddingModel EMBEDDINGS = new KeywordEmbeddingModel();
+
+    private static EmbeddingStore<TextSegment> indexedHandbook() throws IOException {
         EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
+        RagMinimal.ingest(RagMinimal.readResource("/docs/handbook.md"), EMBEDDINGS, store);
+        return store;
+    }
 
-        EmbeddingStoreIngestor.builder()
-                .embeddingModel(embeddingModel)
-                .embeddingStore(store)
-                .build()
-                .ingest(List.of(
-                        Document.from("Production deployments happen on Tuesday and Thursday."),
-                        Document.from("Changes to the payments module need two approval steps, "
-                                + "one from the payments team."),
-                        Document.from("The oncall engineer acknowledges a page within 15 minutes.")));
-
-        RecordingModel model = new RecordingModel();
-
-        AiServices.builder(Handbook.class)
-                .chatModel(model)
-                .contentRetriever(EmbeddingStoreContentRetriever.builder()
-                        .embeddingStore(store)
-                        .embeddingModel(embeddingModel)
-                        .maxResults(1)
-                        .build())
-                .build()
-                .ask("Who approves a payments change?");
-
-        String sent = model.requests.get(0).messages().toString();
-        assertThat(sent).contains("payments team");
-        assertThat(sent).doesNotContain("oncall engineer");
+    private static List<String> retrieve(String question) throws IOException {
+        return RagMinimal.retriever(indexedHandbook(), EMBEDDINGS).retrieve(Query.from(question)).stream()
+                .map(Content::textSegment)
+                .map(TextSegment::text)
+                .toList();
     }
 
     /**
@@ -81,8 +65,8 @@ class RagMinimalTest {
      */
     @Test
     void theHandbookIsSplitIntoSeveralChunks() throws IOException {
-        List<TextSegment> chunks = DocumentSplitters.recursive(500, 100)
-                .split(Document.from(readHandbook()));
+        List<TextSegment> chunks = RagMinimal.splitter()
+                .split(Document.from(RagMinimal.readResource("/docs/handbook.md")));
 
         assertThat(chunks).hasSizeGreaterThan(1);
 
@@ -93,10 +77,31 @@ class RagMinimalTest {
                 .satisfies(chunk -> assertThat(chunk.text()).doesNotContain("Tuesdays and Thursdays"));
     }
 
-    private static String readHandbook() throws IOException {
-        try (InputStream in = RagMinimalTest.class.getResourceAsStream("/docs/handbook.md")) {
-            assertThat(in).isNotNull();
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
+    @Test
+    void theRightChunkOfTheRealHandbookReachesThePrompt() throws IOException {
+        RecordingModel model = new RecordingModel();
+
+        AiServices.builder(Handbook.class)
+                .chatModel(model)
+                .contentRetriever(RagMinimal.retriever(indexedHandbook(), EMBEDDINGS))
+                .build()
+                .ask("How many approvals does a payments change need?");
+
+        // Split, stored and retrieved with the recipe's own settings, score floor included.
+        assertThat(model.requests.get(0).messages().toString()).contains("payments team");
+    }
+
+    @Test
+    void anUnrelatedQuestionRetrievesNothingRatherThanTheClosestNoise() throws IOException {
+        // What the 0.4 floor is for. Without it maxResults always fills up, and a question the
+        // handbook cannot answer gets answered anyway, out of whatever scored highest.
+        assertThat(retrieve("what is the capital of France")).isEmpty();
+    }
+
+    @Test
+    void aDeploymentQuestionRetrievesTheDeploymentRules() throws IOException {
+        assertThat(retrieve("when can I deploy on tuesday"))
+                .isNotEmpty()
+                .first().asString().contains("Production deployments");
     }
 }

@@ -9,12 +9,10 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.TextReader;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.core.io.ClassPathResource;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,52 +22,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * The point of a RAG test is not the answer, it is the context: did the right chunk end up in
  * the prompt? That can be checked without a model.
+ *
+ * Every test here goes through the recipe's own split() and retrieval(). An earlier version built
+ * its own splitter and its own search request with the same numbers typed out again, which meant it
+ * tested a copy: put the recipe back on the 800-token default and it still passed - the exact
+ * regression it had been written to catch.
  */
 class RagMinimalTest {
 
-    private static final Document DEPLOY = new Document(
-            "Production deployments happen on Tuesday and Thursday. Every deploy needs two approval steps.");
-    private static final Document PAYMENTS = new Document(
-            "Changes to the payments module need two approval steps, one from the payments team.");
-    private static final Document ONCALL = new Document(
-            "The oncall engineer acknowledges a page within 15 minutes. Sev-1 pages immediately.");
+    private static final ClassPathResource HANDBOOK = new ClassPathResource("/docs/handbook.md");
 
-    @Test
-    void retrievedChunksAreInjectedIntoThePrompt() {
+    private static VectorStore indexedHandbook() {
         VectorStore store = SimpleVectorStore.builder(new KeywordEmbeddingModel()).build();
-        store.add(List.of(DEPLOY, PAYMENTS, ONCALL));
-
-        AtomicReference<Prompt> captured = new AtomicReference<>();
-        ChatModel stub = prompt -> {
-            captured.set(prompt);
-            return new ChatResponse(List.of(new Generation(new AssistantMessage("ok"))));
-        };
-
-        ChatClient.builder(stub)
-                .defaultAdvisors(QuestionAnswerAdvisor.builder(store)
-                        .searchRequest(SearchRequest.builder().topK(1).similarityThreshold(0.0).build())
-                        .build())
-                .build()
-                .prompt()
-                .user("Who approves a payments change?")
-                .call()
-                .content();
-
-        String sent = captured.get().getInstructions().toString();
-        assertThat(sent).contains("payments team");
-        assertThat(sent).doesNotContain("oncall engineer");
-    }
-
-    @Test
-    void searchRanksTheRelevantChunkFirst() {
-        VectorStore store = SimpleVectorStore.builder(new KeywordEmbeddingModel()).build();
-        store.add(List.of(DEPLOY, PAYMENTS, ONCALL));
-
-        List<Document> hits = store.similaritySearch(
-                SearchRequest.builder().query("when can I deploy on tuesday").topK(1).build());
-
-        assertThat(hits).isNotNull();
-        assertThat(hits.get(0).getText()).contains("Production deployments");
+        store.add(RagMinimalApplication.split(HANDBOOK));
+        return store;
     }
 
     /**
@@ -80,11 +46,7 @@ class RagMinimalTest {
      */
     @Test
     void theHandbookIsSplitIntoSeveralChunks() {
-        List<Document> chunks = TokenTextSplitter.builder()
-                .withChunkSize(100)
-                .withMinChunkSizeChars(50)
-                .build()
-                .apply(new TextReader(new ClassPathResource("/docs/handbook.md")).get());
+        List<Document> chunks = RagMinimalApplication.split(HANDBOOK);
 
         assertThat(chunks).hasSizeGreaterThan(1);
 
@@ -93,5 +55,48 @@ class RagMinimalTest {
                 .filteredOn(chunk -> chunk.getText().contains("payments module"))
                 .singleElement()
                 .satisfies(chunk -> assertThat(chunk.getText()).doesNotContain("Tuesdays and Thursdays"));
+    }
+
+    @Test
+    void theRightChunkOfTheRealHandbookReachesThePrompt() {
+        AtomicReference<Prompt> captured = new AtomicReference<>();
+        ChatModel stub = prompt -> {
+            captured.set(prompt);
+            return new ChatResponse(List.of(new Generation(new AssistantMessage("ok"))));
+        };
+
+        ChatClient.builder(stub)
+                .defaultAdvisors(QuestionAnswerAdvisor.builder(indexedHandbook())
+                        .searchRequest(RagMinimalApplication.retrieval())
+                        .build())
+                .build()
+                .prompt()
+                .user("How many approvals does a payments change need?")
+                .call()
+                .content();
+
+        // Split, stored and retrieved with the recipe's own settings, threshold included.
+        assertThat(captured.get().getInstructions().toString()).contains("payments team");
+    }
+
+    @Test
+    void anUnrelatedQuestionRetrievesNothingRatherThanTheClosestNoise() {
+        // This is what the 0.4 threshold is for. Without it top-k always returns three chunks, and a
+        // question the handbook cannot answer gets answered anyway, out of whatever scored highest.
+        List<Document> hits = indexedHandbook().similaritySearch(SearchRequest.from(RagMinimalApplication.retrieval())
+                .query("what is the capital of France")
+                .build());
+
+        assertThat(hits).isEmpty();
+    }
+
+    @Test
+    void searchRanksTheRelevantChunkFirst() {
+        List<Document> hits = indexedHandbook().similaritySearch(SearchRequest.from(RagMinimalApplication.retrieval())
+                .query("when can I deploy on tuesday")
+                .build());
+
+        assertThat(hits).isNotEmpty();
+        assertThat(hits.get(0).getText()).contains("Production deployments");
     }
 }
