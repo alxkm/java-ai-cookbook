@@ -10,7 +10,8 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
-import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
+import dev.langchain4j.store.embedding.RelevanceScore;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +56,10 @@ public class RagPgvector {
                         .embeddingStore(store)
                         .embeddingModel(embeddingModel)
                         .maxResults(3)
-                        .minScore(0.4)
+                        // minScore is a relevance score, (cosine + 1) / 2, not a cosine. A bare 0.4 here meant
+                        // cosine -0.2 and let through chunks with no similarity at all - unrelated questions came
+                        // back with three chunks of context. This is cosine 0.4, the same floor as the Spring side.
+                        .minScore(RelevanceScore.fromCosineSimilarity(0.4))
                         .build())
                 .build();
 

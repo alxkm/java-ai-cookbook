@@ -69,6 +69,12 @@ LangChain4j: `EmbeddingStoreContentRetriever` for the simple case, `DefaultRetri
 the real one. More parts are exposed - query transformers, content aggregators, injectors - and more
 of them are `-beta` modules.
 
+The score thresholds look alike and are not. Spring AI's `similarityThreshold` is a raw cosine;
+LangChain4j's `minScore` is a relevance score, `(cosine + 1) / 2`, on every store including
+pgvector. So `0.4` on the LangChain4j side means cosine -0.2 - no floor at all - and recipes 07-09
+shipped with exactly that until a test asked an unrelated question. `RelevanceScore.fromCosineSimilarity`
+converts, and is worth using for the readability alone.
+
 Both support pgvector with roughly the same amount of code (recipe 08 ([Spring AI](../spring-ai/08-rag-pgvector), [LangChain4j](../langchain4j/08-rag-pgvector))). Neither one makes ingestion
 idempotent for you, which is the part that actually bites.
 
