@@ -16,7 +16,10 @@ curl -N 'http://localhost:8080/chat/stream?q=explain+virtual+threads'
 ## Where to look
 
 - [`StreamingApplication.java`](src/main/java/com/example/cookbook/StreamingApplication.java) - `.stream().content()` instead of `.call().content()`.
-- [`StreamingController.java`](src/main/java/com/example/cookbook/StreamingController.java) - the only thing that makes it SSE is `produces = text/event-stream`.
+- [`StreamingController.java`](src/main/java/com/example/cookbook/StreamingController.java) - the only thing that makes it SSE is `produces = text/event-stream`,
+  plus `onTheWire(...)`, which protects each token's leading space.
+- [`StreamingWireTest.java`](src/test/java/com/example/cookbook/StreamingWireTest.java) - reads the raw event stream and parses it the way a browser's
+  `EventSource` does.
 
 ## Gotchas
 
@@ -25,6 +28,13 @@ curl -N 'http://localhost:8080/chat/stream?q=explain+virtual+threads'
 - Streaming responses carry token usage only in the final chunk, and some providers omit it entirely.
 - If the client disconnects, the `Flux` is cancelled but the provider may already have been billed
   for the full completion.
+- **WebFlux eats the space that starts a token.** It writes `data:` with no space after the colon,
+  and the SSE spec tells the client to strip one leading space from each data line - so
+  `" threads"` arrives as `threads` and a browser shows `Virtualthreads are cheap`. With BPE
+  tokenisation most tokens start with a space. Newlines are split correctly; the space is not
+  protected. `onTheWire` adds one space in front of every line so the stripped one is ours. The
+  token `Flux` itself was always right, which is why a test on it passed while the endpoint was
+  wrong.
 
 ---
 
