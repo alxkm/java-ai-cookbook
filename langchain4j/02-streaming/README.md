@@ -32,8 +32,10 @@ curl -N 'http://localhost:8080/chat/stream?q=explain+virtual+threads'
   that bug until `StreamingEndToEndTest` called the endpoint instead of the stub.
 - The spec strips one leading space after `data:`, so the writer must emit `data: ` with the space.
   Tokens usually start with one - `" threads"` - and it has to survive the round trip.
-- Spring's side of this recipe never has the problem: WebFlux encodes a `Flux<String>` as
-  `text/event-stream` and splits lines itself. Hand-rolling SSE means owning the framing.
+- Spring's side of this recipe gets the newlines right for free - WebFlux splits them itself -
+  and had the leading-space bug instead: it writes `data:` with no space after the colon, so the
+  client strips the token's own space. Neither framework gets both halves right for you; see
+  [the Spring side](../../spring-ai/02-streaming).
 - `onError` is the only place a failure surfaces. There is no exception to catch around `chat(...)`.
 
 ---

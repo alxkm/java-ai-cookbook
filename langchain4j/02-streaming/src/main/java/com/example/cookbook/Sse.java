@@ -10,8 +10,9 @@ import java.util.regex.Pattern;
  * and the client ends the field there: everything after the first newline in a token is dropped,
  * silently, and model output is full of newlines - paragraphs, lists, code.
  *
- * Spring's side of this recipe never has the problem, because WebFlux encodes a Flux of strings
- * with text/event-stream and does the splitting itself. Hand-rolling SSE means owning it.
+ * Spring's side of this recipe gets the splitting for free and had the other half wrong instead:
+ * WebFlux writes "data:" with no space after the colon, so the client strips the token's own
+ * leading space. The space this class writes after every "data:" is what prevents that here.
  */
 final class Sse {
 
