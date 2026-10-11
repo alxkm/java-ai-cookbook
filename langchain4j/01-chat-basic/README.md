@@ -31,7 +31,8 @@ and never asserts on what the model actually knows.
 
 ## Where to look
 
-- [`ChatBasic.java`](src/main/java/com/example/cookbook/ChatBasic.java) - one call to `ChatModel.chat(...)`, plus the token usage from the response.
+- [`ChatBasic.java`](src/main/java/com/example/cookbook/ChatBasic.java) - `ask(...)` is one call to `ChatModel.chat(...)`; `usage(...)` reads the token
+  usage off the response without assuming it is there.
 - [`Models.java`](src/main/java/com/example/cookbook/Models.java) - provider selection written out by hand. Every recipe has its own copy,
   because the projects are meant to be readable on their own and copy-pasteable out of the repo.
 - [`ChatBasicTest.java`](src/test/java/com/example/cookbook/ChatBasicTest.java) / `StubChatModel.java` - the same check without a key or a network call.
@@ -42,6 +43,10 @@ and never asserts on what the model actually knows.
 - `chat(String)` is a convenience overload that drops the response metadata. Use
   `chat(ChatMessage...)` when you want `tokenUsage()` or `finishReason()`.
 - Ollama needs the model pulled first: `ollama pull llama3.2`.
+- `tokenUsage()` can be null. The provider reports it, the library does not compute it, and an
+  OpenAI-compatible local server often leaves it out. Read unguarded, a missing figure turns an
+  answer that has already printed into a `NullPointerException` - the `StubChatModel` in this
+  recipe's own tests is exactly such a provider.
 
 ---
 
