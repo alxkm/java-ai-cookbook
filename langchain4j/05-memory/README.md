@@ -19,7 +19,10 @@ not from this process.
 - [`Memory.java`](src/main/java/com/example/cookbook/Memory.java) - `chatMemoryProvider(id -> ...)`, one memory per conversation id, each built
   over the shared store.
 - [`JdbcChatMemoryStore.java`](src/main/java/com/example/cookbook/JdbcChatMemoryStore.java) - the three methods the interface asks for, in plain JDBC.
-- [`MemoryTest.java`](src/test/java/com/example/cookbook/MemoryTest.java) - proves the history is resent and that the window drops old messages.
+- [`TurnAlignedChatMemory.java`](src/main/java/com/example/cookbook/TurnAlignedChatMemory.java) - keeps the window from opening with an answer whose question
+  it already evicted.
+- [`MemoryTest.java`](src/test/java/com/example/cookbook/MemoryTest.java) - goes through the recipe's own `assistant(...)`, and checks that every request
+  opens with a question once the window is full.
 - [`JdbcChatMemoryStoreTest.java`](src/test/java/com/example/cookbook/JdbcChatMemoryStoreTest.java) - writes through one store and reads back through another over the
   same database, which is as close to a restart as a test gets.
 
@@ -27,7 +30,16 @@ not from this process.
 
 - Memory is a prompt concern, not a model feature. Every remembered turn is re-sent and re-billed.
 - `MessageWindowChatMemory` counts messages, not tokens.
-- The window is trimmed before the new message is appended, so a request can carry `maxMessages + 1`.
+- The system prompt is not one of the `maxMessages` - it rides on top of the window - so a window
+  of ten sends up to eleven messages.
+- **The window evicts one message at a time, so it can start in the middle of a turn.** The new
+  question is added before the window is cut, so once it is full the oldest survivor is an answer
+  whose question was just evicted. With an even window that is every request from then on: the
+  model reads a reply to nothing, and Anthropic has been reported to refuse it outright with
+  `messages: first message must use the "user" role`. `TurnAlignedChatMemory` drops those
+  orphaned leading messages from what is sent, and leaves the store alone. Spring AI's side does
+  not have this: it reads the history before adding the question, so its window stays on whole
+  turns.
 - With `chatMemory(...)` instead of `chatMemoryProvider(...)` every caller shares one history.
   That is fine for a CLI and wrong for a service.
 - **The window and the storage are two separate decisions**, and leaving the store out quietly
