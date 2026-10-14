@@ -7,10 +7,13 @@ import java.time.Duration;
 /**
  * 19 - Retry and rate limits (LangChain4j).
  *
- * The model already retries twice with its own backoff. What it will not do is promise the caller
- * an upper bound on how long the whole thing takes, so that is what CallBudget adds on top.
+ * The model can retry by itself, but it will not promise the caller an upper bound on how long the
+ * whole thing takes. CallBudget does, so it owns retrying here and the model's own is switched off.
  */
 public final class Retry {
+
+    /** The whole operation's limit. Models caps each request's timeout at it. */
+    static final Duration DEADLINE = Duration.ofSeconds(8);
 
     private Retry() {
     }
@@ -18,7 +21,7 @@ public final class Retry {
     static CallBudget budget() {
         return CallBudget.builder()
                 .maxAttempts(3)
-                .deadline(Duration.ofSeconds(8))
+                .deadline(DEADLINE)
                 .initialBackoff(Duration.ofMillis(250))
                 .multiplier(3)
                 .retryable(Transient.classifier())

@@ -36,35 +36,52 @@ final class Models {
      * maxRetries and timeout are the whole retry surface a LangChain4j model exposes. The curve
      * underneath - 1s base, a 1.5 exponent and 0.2 jitter - lives in RetryUtils and is not
      * reachable from a model builder, so a wall-clock budget has to sit outside the model.
+     *
+     * Once it does, the model's own retrying has to go. Left at two, every attempt the budget makes
+     * is three requests, and a model timeout longer than the deadline lets the first attempt alone
+     * outlast it: the budget checks the clock between attempts and cannot stop one that is running.
      */
+    static final int MODEL_RETRIES = 0;
+
+    static final Duration MODEL_TIMEOUT = Retry.DEADLINE;
+
     static ChatModel chat() {
         return switch (provider()) {
-            case "openai" -> OpenAiChatModel.builder()
-                    .apiKey(require("OPENAI_API_KEY"))
-                    .maxRetries(2)
-                    .timeout(Duration.ofSeconds(20))
-                    .modelName("gpt-4o-mini")
-                    .temperature(0.2)
-                    .build();
+            case "openai" -> openAi(require("OPENAI_API_KEY"), "https://api.openai.com/v1");
             case "anthropic" -> AnthropicChatModel.builder()
                     .apiKey(require("ANTHROPIC_API_KEY"))
-                    .maxRetries(2)
-                    .timeout(Duration.ofSeconds(20))
+                    .maxRetries(MODEL_RETRIES)
+                    .timeout(MODEL_TIMEOUT)
                     .modelName("claude-sonnet-5")
                     .temperature(0.2)
                     .build();
-            case "ollama" -> OllamaChatModel.builder()
-                    .baseUrl(envOr("OLLAMA_BASE_URL", "http://localhost:11434"))
-                    // Ollama defaults to a small context and truncates from the front, silently.
-                    // A long prompt plus a long answer hits it and you get half a JSON object back.
-                    .numCtx(8192)
-                    .maxRetries(2)
-                    .timeout(Duration.ofSeconds(20))
-                    .modelName("llama3.2")
-                    .temperature(0.2)
-                    .build();
+            case "ollama" -> ollama(envOr("OLLAMA_BASE_URL", "http://localhost:11434"));
             default -> throw new IllegalStateException("Unknown AI_PROVIDER: " + provider());
         };
+    }
+
+    static ChatModel openAi(String apiKey, String baseUrl) {
+        return OpenAiChatModel.builder()
+                .apiKey(apiKey)
+                .baseUrl(baseUrl)
+                .maxRetries(MODEL_RETRIES)
+                .timeout(MODEL_TIMEOUT)
+                .modelName("gpt-4o-mini")
+                .temperature(0.2)
+                .build();
+    }
+
+    static ChatModel ollama(String baseUrl) {
+        return OllamaChatModel.builder()
+                .baseUrl(baseUrl)
+                // Ollama defaults to a small context and truncates from the front, silently.
+                // A long prompt plus a long answer hits it and you get half a JSON object back.
+                .numCtx(8192)
+                .maxRetries(MODEL_RETRIES)
+                .timeout(MODEL_TIMEOUT)
+                .modelName("llama3.2")
+                .temperature(0.2)
+                .build();
     }
 
     private static boolean isSet(String name) {

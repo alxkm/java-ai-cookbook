@@ -22,13 +22,16 @@ gave up after 3 attempt(s) in PT5.34S: java.net.ConnectException
 ## Where to look
 
 - `Models.java` - `maxRetries` and `timeout` are the entire retry surface a model builder exposes.
-  The curve underneath is `RetryUtils`, and you cannot reach it from there.
+  The curve underneath is `RetryUtils`, and you cannot reach it from there. Both are turned down
+  here: retries to zero, the timeout to the budget's deadline.
 - `Transient.java` - two `instanceof` checks and nothing else, because LangChain4j has already
   sorted its exceptions: `RateLimitException`, `TimeoutException` and `InternalServerException`
   extend `RetriableException`; `AuthenticationException` and `InvalidRequestException` extend
   `NonRetriableException`.
 - `CallBudget.java` - `call()` checks the deadline *before* sleeping, so a retry that cannot finish
   inside the budget is never started.
+- `ModelRetriesTest.java` - the recipe's real OpenAI and Ollama models against a local server that
+  always answers 503, counting requests: three budget attempts, three requests.
 
 ## Gotchas
 
@@ -36,7 +39,12 @@ gave up after 3 attempt(s) in PT5.34S: java.net.ConnectException
   jitter, none of which a model builder lets you change - so the only way to cap the total time is
   to wrap the call, which is what `CallBudget` does.
 - The model retries *inside* your retry. Two layers of three attempts is nine calls, and a nine-way
-  multiplication is rarely what anyone meant. Pick which layer owns the retrying.
+  multiplication is rarely what anyone meant. Pick which layer owns the retrying. This recipe got
+  it wrong itself - `maxRetries(2)` under the budget - until `ModelRetriesTest` counted nine
+  requests where it expected three.
+- The model's timeout bounds one request, and the budget only checks the clock between attempts.
+  A 20-second timeout under an 8-second deadline lets the first attempt alone run past it, so the
+  timeout is capped at the deadline.
 - `ContentFilteredException` extends `InvalidRequestException`, so a content-policy refusal is
   correctly never retried - even though it arrives looking like a server-side rejection.
 - A refused connection and a socket timeout are raised by the JDK client before any provider
