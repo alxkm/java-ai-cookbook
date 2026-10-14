@@ -12,8 +12,8 @@ import java.util.function.Supplier;
  * Both frameworks let you set an attempt count and a backoff curve. Neither lets you say the thing
  * a caller actually cares about: "this operation may take ten seconds and not a second more". The
  * total wait is left as an emergent property of attempts times multiplier, which nobody computes -
- * and that is how Spring AI's own defaults (10 attempts, 2s, multiplier 5, capped at 3 minutes)
- * add up to just over nineteen minutes on a single call.
+ * and that is how Spring AI's RetryTemplate defaults (10 retries, 2s, multiplier 5, capped at 3
+ * minutes) add up to about twenty-two minutes on a single call.
  *
  * So the deadline is checked before sleeping, not after waking: a retry that could not finish
  * inside the budget is never started.

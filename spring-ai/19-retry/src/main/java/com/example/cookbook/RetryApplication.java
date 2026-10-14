@@ -12,6 +12,9 @@ import java.time.Duration;
 @SpringBootApplication
 public class RetryApplication {
 
+    /** The whole operation's limit. application.yml caps each provider's per-attempt timeout at it. */
+    static final Duration DEADLINE = Duration.ofSeconds(8);
+
     public static void main(String[] args) {
         SpringApplication.run(RetryApplication.class, args);
     }
@@ -32,7 +35,7 @@ public class RetryApplication {
     CallBudget callBudget() {
         return CallBudget.builder()
                 .maxAttempts(3)
-                .deadline(Duration.ofSeconds(8))
+                .deadline(DEADLINE)
                 .initialBackoff(Duration.ofMillis(250))
                 .multiplier(3)
                 .retryable(Transient.classifier())

@@ -1,5 +1,11 @@
 package com.example.cookbook;
 
+import com.anthropic.errors.AnthropicIoException;
+import com.anthropic.errors.AnthropicRetryableException;
+import com.anthropic.errors.AnthropicServiceException;
+import com.openai.errors.OpenAIIoException;
+import com.openai.errors.OpenAIRetryableException;
+import com.openai.errors.OpenAIServiceException;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.retry.TransientAiException;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -14,6 +20,12 @@ import java.util.function.Predicate;
  * The distinction that matters is not "did it fail" but "would the same request succeed later".
  * A 429 or a 503 says yes. A 400, a 401 or a content-policy refusal says no, and retrying it only
  * spends the budget before returning the same error.
+ *
+ * In Spring AI 2.0 the answer comes in three dialects, one per kind of client. The OpenAI and
+ * Anthropic models are built on the providers' own SDKs and throw those SDKs' exceptions untouched;
+ * Ollama goes through Spring's RestClient and Spring AI's TransientAiException. A classifier that
+ * knows only the Spring types sees a real OpenAI 429 as permanent and gives up on exactly the error
+ * this recipe is about.
  */
 final class Transient {
 
@@ -29,8 +41,20 @@ final class Transient {
 
     static boolean isTransient(Throwable error) {
         for (Throwable e = error; e != null; e = e.getCause() == e ? null : e.getCause()) {
-            // Spring AI has already made this call for its own retry layer; reuse it rather than
-            // second-guess it.
+            // The SDKs: a status code on every service error, and separate types for a transport
+            // failure and for "retries exhausted on something retryable".
+            if (e instanceof OpenAIServiceException service) {
+                return hasRetryableStatus(service.statusCode());
+            }
+            if (e instanceof AnthropicServiceException service) {
+                return hasRetryableStatus(service.statusCode());
+            }
+            if (e instanceof OpenAIIoException || e instanceof OpenAIRetryableException
+                    || e instanceof AnthropicIoException || e instanceof AnthropicRetryableException) {
+                return true;
+            }
+
+            // Spring AI's own types, for the models that still go through its RetryTemplate.
             if (e instanceof NonTransientAiException) {
                 return false;
             }

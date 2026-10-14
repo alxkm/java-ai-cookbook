@@ -104,12 +104,14 @@ transport it used to default to is deprecated, and LangChain4j dropped it from t
 
 Spring AI configures retrying; LangChain4j types it.
 
-Spring AI gives you a property block - `spring.ai.retry.max-attempts`, the backoff curve,
-`on-client-errors`, per-status include and exclude lists - and applies it underneath every model
-([recipe 19](../spring-ai/19-retry)). Read the defaults before you rely on them: ten attempts, a 2s
-initial interval, a multiplier of 5 and a 3-minute ceiling multiply out to roughly nineteen minutes
-of waiting on one call. There is no jitter, so every client that saw the same 429 comes back at the
-same moment.
+Spring AI 2.0 configures it in three places. The OpenAI and Anthropic models are built on the
+providers' own SDKs and retry through them - `spring.ai.openai.chat.max-retries`,
+`spring.ai.anthropic.max-retries` - throwing the SDKs' exceptions untouched. Only the models still
+on Spring AI's RetryTemplate, such as Ollama, read the `spring.ai.retry` block, whose
+`max-attempts` is passed to `RetryPolicy.maxRetries` and so counts retries: the default of ten is
+eleven attempts and about twenty-two minutes of backoff, with no jitter
+([recipe 19](../spring-ai/19-retry)). The trap is configuring that block for OpenAI: it binds, and
+does nothing.
 
 LangChain4j gives you `maxRetries` on the model builder and nothing else - the curve lives in
 `RetryUtils` and is not reachable from there - but it sorts its exceptions properly:
@@ -119,8 +121,9 @@ LangChain4j gives you `maxRetries` on the model builder and nothing else - the c
 of a status-code table, and it has jitter by default.
 
 Neither bounds an operation in wall-clock time. Both express attempts and backoff and leave the
-total as something you are expected to multiply out yourself, which is exactly how the nineteen
-minutes goes unnoticed. Recipe 19 wraps both in the same small budget for that reason.
+total as something you are expected to multiply out yourself, which is exactly how the twenty-two
+minutes goes unnoticed. Recipe 19 wraps both in the same small budget for that reason, and turns
+every retry layer underneath it off so the budget bounds the calls instead of multiplying them.
 
 ### Evals
 
