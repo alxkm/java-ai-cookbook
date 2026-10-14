@@ -76,7 +76,9 @@ shipped with exactly that until a test asked an unrelated question. `RelevanceSc
 converts, and is worth using for the readability alone.
 
 Both support pgvector with roughly the same amount of code (recipe 08 ([Spring AI](../spring-ai/08-rag-pgvector), [LangChain4j](../langchain4j/08-rag-pgvector))). Neither one makes ingestion
-idempotent for you, which is the part that actually bites.
+idempotent for you, which is the part that actually bites - and the obvious guard, "skip if
+this source is indexed", stops the doubling and then never lets the document change. Recipe 08
+stores a hash of the source with every chunk on both sides for that reason.
 
 ### Observability
 

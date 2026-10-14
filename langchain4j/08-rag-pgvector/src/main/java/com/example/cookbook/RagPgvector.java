@@ -3,12 +3,16 @@ package com.example.cookbook;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
+import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
@@ -16,6 +20,9 @@ import dev.langchain4j.store.embedding.RelevanceScore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -23,6 +30,11 @@ import java.util.List;
  * ingestion: it has to be idempotent, because the store outlives the process now.
  */
 public class RagPgvector {
+
+    /** What a start-up did to the index, so the demo can say so and the tests can assert it. */
+    enum Ingest {
+        INDEXED, UP_TO_DATE, REINDEXED
+    }
 
     private static final String SOURCE = "handbook.md";
 
@@ -48,7 +60,8 @@ public class RagPgvector {
                 .createTable(true)
                 .build();
 
-        ingestOnce(store, embeddingModel);
+        Ingest outcome = ingestOnce(store, embeddingModel, SOURCE, readResource("/docs/" + SOURCE));
+        System.out.println(SOURCE + ": " + outcome.name().toLowerCase().replace('_', ' '));
 
         Handbook handbook = AiServices.builder(Handbook.class)
                 .chatModel(Models.chat())
@@ -77,35 +90,57 @@ public class RagPgvector {
     }
 
     /**
-     * Re-running the app must not double the corpus. Searching for the source marker before
-     * ingesting is the simplest thing that works; a content hash per chunk is the next step up.
+     * Re-running the app must not double the corpus - and editing the document must not leave the
+     * old version answering questions.
+     *
+     * The obvious check, "is anything from this source indexed already", gets the first half right
+     * and the second half silently wrong: change a line in the handbook and every start-up after that
+     * reports "already indexed" and keeps retrieving the old text, forever. So each chunk carries a
+     * hash of the document it came from, and a different hash means the source is replaced.
      */
-    private static void ingestOnce(PgVectorEmbeddingStore store, EmbeddingModel embeddingModel) throws IOException {
-        var probe = store.search(EmbeddingSearchRequest.builder()
-                .queryEmbedding(embeddingModel.embed("deployment").content())
-                .filter(MetadataFilterBuilder.metadataKey("source").isEqualTo(SOURCE))
+    static Ingest ingestOnce(EmbeddingStore<TextSegment> store, EmbeddingModel embeddingModel,
+                             String source, String text) {
+        String hash = sha256(text);
+        Filter ofSource = MetadataFilterBuilder.metadataKey("source").isEqualTo(source);
+
+        // Any vector will do as the query: the filter and a zero score floor make this "is there a
+        // chunk from this source", which is all the store API can ask without raw SQL.
+        List<EmbeddingMatch<TextSegment>> existing = store.search(EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddingModel.embed(source).content())
+                .filter(ofSource)
                 .maxResults(1)
                 .minScore(0.0)
-                .build());
+                .build()).matches();
 
-        if (!probe.matches().isEmpty()) {
-            System.out.println("already indexed");
-            return;
+        if (!existing.isEmpty()) {
+            // A chunk written before hashes were stored has none, and is replaced like any other.
+            if (hash.equals(existing.get(0).embedded().metadata().getString("source_hash"))) {
+                return Ingest.UP_TO_DATE;
+            }
+            store.removeAll(ofSource);
         }
-
-        Document document = Document.from(readResource("/docs/" + SOURCE), Metadata.from("source", SOURCE));
 
         EmbeddingStoreIngestor.builder()
                 .documentSplitter(DocumentSplitters.recursive(500, 100))
                 .embeddingModel(embeddingModel)
                 .embeddingStore(store)
                 .build()
-                .ingest(document);
+                .ingest(Document.from(text, Metadata.from("source", source).put("source_hash", hash)));
 
-        System.out.println("indexed " + SOURCE);
+        return existing.isEmpty() ? Ingest.INDEXED : Ingest.REINDEXED;
     }
 
-    private static String readResource(String path) throws IOException {
+    static String sha256(String text) {
+        try {
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("every JVM is required to provide SHA-256", e);
+        }
+    }
+
+    static String readResource(String path) throws IOException {
         try (InputStream in = RagPgvector.class.getResourceAsStream(path)) {
             if (in == null) {
                 throw new IOException("Resource not found: " + path);

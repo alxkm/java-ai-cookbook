@@ -12,7 +12,8 @@ export OPENAI_API_KEY=sk-...
 ./mvnw spring-boot:run
 ```
 
-Run it twice. The second run prints `already indexed` instead of duplicating the corpus.
+Run it twice. The second run prints `handbook.md: up to date` instead of duplicating the corpus.
+Edit the handbook and run it again: it prints `reindexed`, and the old text is gone from the table.
 
 ## Test
 
@@ -50,6 +51,11 @@ SQL, the index and the filter are exercised without an API key. Without Docker t
 - HNSW indexes are built in memory and are slow to create on a large table. Ingest first, index after.
 - Re-running ingestion without a guard silently doubles every chunk, and retrieval quality drops
   because the top-k fills up with duplicates.
+- **The obvious guard is half a guard.** "Skip if this source is already indexed" stops the
+  doubling, and then never lets the document change: edit a line in the handbook and every start
+  after that skips, and the app keeps answering from the old text. Each chunk here carries a
+  `source_hash` of the document it came from; a different hash deletes that source and indexes it
+  again, and leaves other sources alone.
 
 ---
 

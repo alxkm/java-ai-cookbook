@@ -87,4 +87,72 @@ class RagPgvectorTest {
         assertThat(hits).allSatisfy(doc ->
                 assertThat(doc.getMetadata()).containsEntry("source", "runbook.md"));
     }
+    private JdbcTemplate jdbc() {
+        DriverManagerDataSource dataSource = new DriverManagerDataSource(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        dataSource.setDriverClassName("org.postgresql.Driver");
+        return new JdbcTemplate(dataSource);
+    }
+
+    /** Every chunk stored for a source, read straight from the table the store writes to. */
+    private List<String> chunksOf(String table, String source) {
+        return jdbc().queryForList(
+                "SELECT content FROM " + table + " WHERE metadata->>'source' = ?", String.class, source);
+    }
+
+    private static final String HANDBOOK = "Production deployments happen on Tuesday and Thursday. "
+            + "Changes to the payments module need two approval steps.";
+
+    @Test
+    void aSecondStartIndexesNothing() throws Exception {
+        PgVectorStore store = store("ingest_twice");
+
+        assertThat(RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_twice", "handbook.md", HANDBOOK))
+                .isEqualTo(RagPgvectorApplication.Ingest.INDEXED);
+        int afterFirst = chunksOf("ingest_twice", "handbook.md").size();
+
+        assertThat(RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_twice", "handbook.md", HANDBOOK))
+                .isEqualTo(RagPgvectorApplication.Ingest.UP_TO_DATE);
+        assertThat(chunksOf("ingest_twice", "handbook.md")).hasSize(afterFirst);
+    }
+
+    @Test
+    void anEditedDocumentReplacesTheOldOne() throws Exception {
+        PgVectorStore store = store("ingest_edited");
+        RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_edited", "handbook.md", HANDBOOK);
+
+        String edited = HANDBOOK.replace("Tuesday and Thursday", "Monday only");
+        assertThat(RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_edited", "handbook.md", edited))
+                .isEqualTo(RagPgvectorApplication.Ingest.REINDEXED);
+
+        // The failure this guards against is quiet: a "rows exist, skip" check keeps the old text in
+        // the table and the app goes on answering from it after the document has changed.
+        assertThat(String.join(" ", chunksOf("ingest_edited", "handbook.md")))
+                .contains("Monday only")
+                .doesNotContain("Tuesday and Thursday");
+    }
+
+    @Test
+    void replacingOneSourceLeavesTheOthersAlone() throws Exception {
+        PgVectorStore store = store("ingest_two_sources");
+        RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_two_sources", "handbook.md", HANDBOOK);
+        RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_two_sources", "runbook.md",
+                "The oncall engineer acknowledges a page within 15 minutes.");
+
+        RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_two_sources", "handbook.md",
+                HANDBOOK + " Hotfixes skip the queue.");
+
+        assertThat(chunksOf("ingest_two_sources", "runbook.md")).singleElement().asString().contains("oncall engineer");
+    }
+
+    @Test
+    void chunksFromBeforeHashesWereStoredAreReplaced() throws Exception {
+        PgVectorStore store = store("ingest_legacy");
+        // What the previous version of the recipe wrote: a source, and no hash.
+        store.add(List.of(new Document("An old copy of the handbook.", Map.of("source", "handbook.md"))));
+
+        assertThat(RagPgvectorApplication.ingestOnce(store, jdbc(), "ingest_legacy", "handbook.md", HANDBOOK))
+                .isEqualTo(RagPgvectorApplication.Ingest.REINDEXED);
+        assertThat(String.join(" ", chunksOf("ingest_legacy", "handbook.md"))).doesNotContain("An old copy");
+    }
 }

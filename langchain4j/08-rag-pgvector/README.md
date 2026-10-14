@@ -11,7 +11,8 @@ export OPENAI_API_KEY=sk-...
 ./mvnw -q compile exec:java
 ```
 
-Run it twice. The second run prints `already indexed` instead of duplicating the corpus.
+Run it twice. The second run prints `handbook.md: up to date` instead of duplicating the corpus.
+Edit the handbook and run it again: it prints `reindexed`, and the old text is gone from the table.
 
 ## Test
 
@@ -42,6 +43,11 @@ SQL and the metadata filter are exercised without an API key. Without Docker the
   returns an empty result instead of an error.
 - Re-running ingestion without a guard silently doubles every chunk, and retrieval quality drops
   because the top-k fills up with duplicates.
+- **The obvious guard is half a guard.** "Skip if this source is already indexed" stops the
+  doubling, and then never lets the document change: edit a line in the handbook and every start
+  after that skips, and the app keeps answering from the old text. Each chunk here carries a
+  `source_hash` of the document it came from; a different hash deletes that source and indexes it
+  again, and leaves other sources alone.
 - **`minScore` is a relevance score, `(cosine + 1) / 2`, not a cosine.** A bare `0.4` means
   cosine -0.2, which lets through chunks with no similarity at all. Write it as
   `RelevanceScore.fromCosineSimilarity(0.4)` so the scale is in the code. Spring AI's
