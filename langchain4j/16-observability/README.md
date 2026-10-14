@@ -29,6 +29,14 @@ Three questions run, then the meters are printed.
 - Tag by model, not by prompt. A tag with unbounded cardinality will take your metrics backend down.
 - Tokens are not the whole bill. Cached input, batch discounts and image inputs are priced
   differently - this is a good estimate, not an invoice.
+- **The model a response reports is not the name you asked for.** OpenAI answers a request for
+  `gpt-4o-mini` with `gpt-4o-mini-2024-07-18`, the snapshot that served it. A price table keyed on
+  the request name misses every response, and the cost meter - the number this recipe exists for
+  - stays at zero without an error. Prices here apply to a name and its dated snapshots, longest
+  name first, so `gpt-4o` is never charged for `gpt-4o-mini`.
+- A response with no price, or no usage, is counted (`cookbook.chat.cost.unpriced`,
+  `cookbook.chat.usage.unreported`) rather than dropped. A gap you can see on a dashboard is better
+  than a cost line that is quietly low.
 
 ---
 
