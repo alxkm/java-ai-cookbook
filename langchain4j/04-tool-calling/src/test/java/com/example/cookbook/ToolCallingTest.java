@@ -1,7 +1,9 @@
 package com.example.cookbook;
 
+import com.example.cookbook.ToolCalling.SupportAgent;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -17,12 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * The tool loop runs inside AiServices, so a scripted model is enough to exercise it end to end
  * without a key: first reply asks for a tool, second reply is the answer.
+ *
+ * It drives the recipe's own SupportAgent. A copy without the @SystemMessage would never notice
+ * the instruction that tells the model to use the tools going missing.
  */
 class ToolCallingTest {
-
-    interface SupportAgent {
-        String answer(String question);
-    }
 
     static class ScriptedModel implements ChatModel {
         final List<ChatRequest> requests = new ArrayList<>();
@@ -56,7 +57,12 @@ class ToolCallingTest {
         assertThat(answer).isEqualTo("Order A-1001 has shipped.");
         assertThat(model.requests).hasSize(2);
 
-        // The tools were advertised on the first request ...
+        // The recipe's instruction went out first ...
+        assertThat(model.requests.get(0).messages().get(0))
+                .isInstanceOfSatisfying(SystemMessage.class, system ->
+                        assertThat(system.text()).contains("Use the tools instead of guessing"));
+
+        // ... the tools were advertised on the first request ...
         assertThat(model.requests.get(0).toolSpecifications())
                 .extracting(spec -> spec.name())
                 .contains("orderStatus", "estimatedDelivery", "today");

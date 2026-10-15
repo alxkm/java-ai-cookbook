@@ -1,8 +1,10 @@
 package com.example.cookbook;
 
+import com.example.cookbook.RagAdvanced.Handbook;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -24,10 +26,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RagAdvancedTest {
-
-    interface Handbook {
-        String ask(String question);
-    }
 
     static class RecordingModel implements ChatModel {
         final List<ChatRequest> requests = new ArrayList<>();
@@ -89,6 +87,10 @@ class RagAdvancedTest {
         String prompt = model.requests.get(0).messages().toString();
         assertThat(prompt).contains("payments module");
         assertThat(prompt).doesNotContain("previous release tag");
+        // The recipe's own Handbook, so the grounding instruction goes out with the context.
+        assertThat(model.requests.get(0).messages().get(0))
+                .isInstanceOfSatisfying(SystemMessage.class, system ->
+                        assertThat(system.text()).startsWith("Answer only from the provided context"));
     }
 
     /**

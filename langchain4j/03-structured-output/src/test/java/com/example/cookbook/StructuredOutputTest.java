@@ -1,17 +1,26 @@
 package com.example.cookbook;
 
+import com.example.cookbook.StructuredOutput.Chef;
 import com.example.cookbook.StructuredOutput.Recipe;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.service.AiServices;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Runs the recipe's own Chef interface, prompt templates included. A copy of the interface in the
+ * test, without the @UserMessage annotations, sent the bare dish name as the whole prompt and
+ * would have passed with the templates deleted or the {{dish}} variable misspelled.
+ */
 class StructuredOutputTest {
 
-    interface Chef {
-        Recipe suggest(String dish);
-
-        StructuredOutput.Variants variants(String dish);
+    private static String userText(StubChatModel model) {
+        return model.requests.get(0).messages().stream()
+                .filter(UserMessage.class::isInstance)
+                .map(message -> ((UserMessage) message).singleText())
+                .findFirst()
+                .orElseThrow();
     }
 
     @Test
@@ -26,8 +35,9 @@ class StructuredOutputTest {
         assertThat(recipe.title()).isEqualTo("Mushroom risotto");
         assertThat(recipe.prepMinutes()).isEqualTo(35);
         assertThat(recipe.vegetarian()).isTrue();
+        assertThat(userText(model)).startsWith("Give me a recipe for mushroom risotto.");
         // Without native schema support the field names are pushed into the prompt instead.
-        assertThat(model.requests.get(0).messages().toString()).contains("prepMinutes");
+        assertThat(userText(model)).contains("prepMinutes");
     }
 
     /**
@@ -49,5 +59,6 @@ class StructuredOutputTest {
 
         assertThat(variants.recipes()).hasSize(2);
         assertThat(variants.recipes().get(1).vegetarian()).isTrue();
+        assertThat(userText(model)).startsWith("Give me two quick variants of risotto.");
     }
 }
